@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model PortalUser {
+    id            String           @id @default(cuid())
+    userName      String           @unique
+    operatorId    String
+    userRole      PortalUserRole
+    autoMode      Boolean          @default(false)
+    loginConfig   Boolean          @default(false)
+    modelConfig   Boolean          @default(false)
+    reports       Boolean          @default(false)
+    manual        Boolean          @default(false)
+    cycleReset    Boolean          @default(false)
+    loginId       String?          @unique
+    selectedModel String?          @default("")
+    login         PortalUserLogin? @relation(fields: [loginId], references: [id])
+    createdAt     DateTime         @default(now())
+    updatedAt     DateTime         @updatedAt
+    PartData      PartData[]
+}
+
+enum PermissionType {
+    AUTO_MODE
+    LOGIN_CONFIG
+    MODEL_CONFIG
+    REPORTS
+    MANUAL
+}
+
+model PortalUserLogin {
+    id         String      @id @default(cuid())
+    password   String
+    portalUser PortalUser?
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
+}
+
+enum PortalUserRole {
+    SUPER_ADMIN
+    ADMIN
+    OPERATOR
+}
+
+model ModelSetting {
+    id                        String   @id @default(cuid())
+    modelName                 String   @unique
+    programNo                 Int      @unique
+    rejectionBin              Boolean?
+    lightCurtain              Boolean?
+    doorLimitSwitch           Boolean?
+    // STAGE 1
+    stage1Check               Boolean?
+    partPresent               Boolean?
+    // STAGE 2
+    stage2Check               Boolean?
+    // Probe Cylinder 1
+    s2ProbeCyl1               Boolean?
+    s2PC1Forward              Boolean?
+    s2PC1Time                 Decimal?
+    // Probe Cylinder 2
+    s2ProbeCyl2               Boolean?
+    s2PC2Forward              Boolean?
+    s2PC2Time                 Decimal?
+    // RESISTANCE 
+    resistance                Boolean?
+    resistanceMin             Decimal?
+    resistanceMax             Decimal?
+    // STAGE 3
+    stage3Check               Boolean?
+    // Probe Cylinder 1
+    S3ProbeCyl1               Boolean?
+    S3PC1Forward              Boolean?
+    S3PC1Time                 Decimal?
+    // Probe Cylinder 2
+    S3ProbeCyl2               Boolean?
+    S3PC2Forward              Boolean?
+    S3PC2Time                 Decimal?
+    // IMPEDANCE 
+    impedance                 Boolean?
+    impedanceMin              Decimal?
+    impedanceMax              Decimal?
+    // STAGE 4
+    stage4Check               Boolean?
+    // CLAMP
+    s4Clamp                   Boolean?
+    s4ClampForward            Boolean?
+    s4ClampTime               Decimal
+    // LOAD CELL Cylinder RD
+    s4LoadCellCyl             Boolean?
+    s4LoadCellCylForward      Boolean?
+    s4LoadCellCylTime         Decimal?
+    // Load Cell Cylinder CB
+    s4CbLoad                  Boolean?
+    s4CbPressingLoad          Boolean?
+    // Load Cell Cylinder CB1
+    s4Cb1BrushPartialLoadMin  Decimal?
+    s4Cb1BrushPartialLoadMax  Decimal?
+    // Load Cell Cylinder CB1
+    s4Cb1BrushFullLoadMin     Decimal?
+    s4Cb1BrushFullLoadMax     Decimal?
+    // Load Cell Cylinder CB1
+    s4Cb1PartialPressPosition Decimal?
+    s4Cb1PartialPressSpeed    Decimal?
+    // Load Cell Cylinder CB1
+    s4Cb1FullPressPosition    Decimal?
+    s4Cb1FullPressSpeed       Decimal?
+    // STAGE 5
+    stage5Check               Boolean?
+    // CLAMP
+    s5Clamp                   Boolean?
+    s5ClampForward            Boolean?
+    s5ClampTime               Decimal?
+    // LOAD CELL CYL RD
+    s5LoadCellCyl             Boolean?
+    s5LoadCellCylForward      Boolean?
+    s5LoadCellCylTime         Decimal?
+    // LOAD CELL CYL CB
+    s5CbLoad                  Boolean?
+    s5CbPressingLoad          Boolean?
+    s5CbLoadComparison        Boolean?
+    // Load Cell Cylinder CB2
+    s5Cb2BrushPartialLoadMin  Decimal?
+    s5Cb2BrushPartialLoadMax  Decimal?
+    // Load Cell Cylinder CB2
+    s5Cb2BrushFullLoadMin     Decimal?
+    s5Cb2BrushFullLoadMax     Decimal?
+    // Load Cell Cylinder CB2
+    s5Cb2PartialPressPosition Decimal?
+    s5Cb2PartialPressSpeed    Decimal?
+    // Load Cell Cylinder CB2
+    s5Cb2FullPressPosition    Decimal?
+    s5Cb2FullPressSpeed       Decimal?
+    // BOP 
+    s5BopCheck                Boolean?
+    s5SceneNo                 Int?
+    // STAGE 5
+    stage6Check               Boolean?
+    // BEARING CYL
+    S6BearingCyl              Boolean?
+    S6BearingCylForward       Boolean?
+    S6BearingCylTime          Decimal?
+    // BEARING ANGLE
+    bearingAngleCheck         Boolean?
+    bearingAngleValue         Decimal?
+
+    // BOP 
+    s6BopCheck        Boolean?
+    s6SceneNo         Int?
+    // STAGE 7
+    stage7Check       Boolean?
+    markingCheck      Boolean?
+    partNo            String?             @unique
+    revNo             String?
+    fileName          String?
+    // STAGE 8
+    stage8Check       Boolean?
+    // UP/DOWN CYL
+    upDownCylCheck    Boolean?
+    upDownCylUp       Boolean?
+    upDownCylTime     Decimal?
+    // GRIPPER
+    gripperCheck      Boolean?
+    gripperGrip       Boolean?
+    gripperTime       Decimal?
+    // SCAN
+    scanCheck         Boolean?
+    // SERVO SPEED
+    servoSpeed        Int?
+    // PART
+    partPickPOS       Int?
+    pressPosition1    Int?
+    pressPosition2    Int?
+    pressPosition3    Int?
+    pressPosition4    Int?
+    pressPosition5    Int?
+    pressPosition6    Int?
+    createdAt         DateTime            @default(now())
+    updatedAt         DateTime            @updatedAt
+    ModelSerialNumber ModelSerialNumber[]
+}
+
+model ModelSerialNumber {
+    id           Int          @id @default(autoincrement())
+    date         DateTime     @default(now())
+    serialNumber String       @unique
+    modelId      String
+    model        ModelSetting @relation(fields: [modelId], references: [id])
+    createdAt    DateTime     @default(now())
+    updatedAt    DateTime     @default(now())
+}
+
+model PartData {
+    id                        Int         @id @default(autoincrement())
+    date                      DateTime?
+    shift                     String      @default("A")
+    programNo                 Int         @default(0)
+    modelName                 String      @default("0")
+    stage1Status              String      @default("-")
+    stage2Min                 String      @default("-")
+    stage2Status              String      @default("-")
+    stage2Resistance          String      @default("-")
+    stage2Max                 String      @default("-")
+    stage3Min                 String      @default("-")
+    stage3Max                 String      @default("-")
+    stage3Status              String      @default("-")
+    stage3Impedance           String      @default("-")
+    stage4Status              String      @default("-")
+    stage4Cb1PartialLoad      String      @default("-")
+    stage4Cb1PartialLoadMin   String      @default("-")
+    stage4Cb1PartialLoadMax   String      @default("-")
+    stage4Cb1FullLoad         String      @default("-")
+    stage4Cb1FullLoadMin      String      @default("-")
+    stage4Cb1FullLoadMax      String      @default("-")
+    stage5Status              String      @default("-")
+    stage5Cb2PartialLoad      String      @default("-")
+    stage5Cb2PartialLoadMin   String      @default("-")
+    stage5Cb2PartialLoadMax   String      @default("-")
+    stage5Cb2FullLoad         String      @default("-")
+    stage5Cb2FullLoadMin      String      @default("-")
+    stage5Cb2FullLoadMax      String      @default("-")
+    stage5Bop1Status          String      @default("-")
+    stage6Bop2Status          String      @default("-")
+    stage6BearingHeightStatus String      @default("-")
+    barcode                   String      @default("0")
+    stage7Status              String      @default("-")
+    stage8Status              String      @default("-")
+    stage8ScanResult          String      @default("-")
+    result                    String      @default("-")
+    updatedBy                 PortalUser? @relation(fields: [portalUserId], references: [id])
+    portalUserId              String?
+    createdAt                 DateTime    @default(now())
+}

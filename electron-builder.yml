@@ -9,8 +9,19 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  # dev-only packages that electron-builder otherwise pulls in via peer deps
+  - '!node_modules/electron/**'
+  - '!node_modules/prisma/**'
+  - '!node_modules/@prisma/engines/**'
 asarUnpack:
   - resources/**
+  - node_modules/@prisma/client/**
+# The generated Prisma client (query engine .dll.node) lives in the dot-folder
+# node_modules/.prisma, which electron-builder's dependency collector never
+# includes — ship it next to the unpacked @prisma/client instead.
+extraResources:
+  - from: node_modules/.prisma
+    to: prisma-client/.prisma
 win:
   executableName: simcbx-papl
 nsis:

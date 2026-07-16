@@ -1,14 +1,38 @@
+import './env'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { appendFileSync } from 'fs'
+
+process.on('uncaughtException', (err) => {
+  try {
+    appendFileSync(
+      require('path').join(app.getPath('userData'), 'main-crash.log'),
+      `${new Date().toISOString()} ${err.stack ?? err.message}\n`
+    )
+  } catch {
+    /* ignore */
+  }
+  console.error('Uncaught exception in main process:', err)
+})
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { IPC } from '@shared/ipc.types'
+import { registerDbIpc } from './ipc/registerDbIpc'
+import { registerPlcIpc } from './ipc/registerPlcIpc'
+import { initDevices, registerDeviceIpc } from './ipc/registerDeviceIpc'
+import { destroyBarcodeScanner } from './devices/barcodeScanner'
+import { destroyLaserClient } from './devices/laserMarker'
+import { prisma } from './db/prisma'
+import { node } from './plc/plcNode'
+import { getPLCConnectionStatus, startPolling, stopAllPolling } from './plcService'
+
+let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+  // Fullscreen kiosk-style HMI window (layouts assume 100vh).
+  mainWindow = new BrowserWindow({
     show: false,
+    fullscreen: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -18,7 +42,11 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -40,7 +68,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.simcbx.app')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -49,16 +77,45 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.handle(IPC.APP_EXIT, () => {
+    app.quit()
+  })
+
+  registerDbIpc()
+  registerPlcIpc()
+  registerDeviceIpc()
+  initDevices()
 
   createWindow()
+
+  const sendToRenderer = (channel: string, payload: unknown): void => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(channel, payload)
+    }
+  }
+
+  // Fire-and-forget: connect() also starts the reconnect loop.
+  void node.connect().catch((err) => console.error('PLC initial connect failed:', err))
+
+  // 800ms data poll -> 'plc-data' push (payload keyed by raw mapping strings).
+  startPolling((data) => sendToRenderer(IPC.PLC_DATA, data))
+
+  // 1s status push replaces the old heartbeat websocket.
+  setInterval(() => sendToRenderer(IPC.PLC_STATUS, getPLCConnectionStatus()), 1000)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  stopAllPolling()
+  void node.disconnect()
+  destroyBarcodeScanner()
+  destroyLaserClient()
+  void prisma.$disconnect()
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -69,6 +126,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

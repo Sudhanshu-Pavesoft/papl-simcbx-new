@@ -1,11 +1,11 @@
-import './assets/main.css'
+import ReactDOM from "react-dom/client";
+import { HashRouter } from "react-router-dom";
+import App from "./App";
 
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  // HashRouter: packaged Electron builds load the renderer via file://,
+  // where BrowserRouter paths don't resolve.
+  <HashRouter>
     <App />
-  </StrictMode>
-)
+  </HashRouter>
+);
