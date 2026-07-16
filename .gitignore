@@ -1,0 +1,21 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+
+# dependencies
+*/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+GEMINI.md
+gemini_docs
+
+resources/
+app.db
