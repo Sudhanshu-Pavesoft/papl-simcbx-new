@@ -15,13 +15,25 @@ files:
   - '!node_modules/@prisma/engines/**'
 asarUnpack:
   - resources/**
-  - node_modules/@prisma/client/**
-# The generated Prisma client (query engine .dll.node) lives in the dot-folder
-# node_modules/.prisma, which electron-builder's dependency collector never
-# includes — ship it next to the unpacked @prisma/client instead.
+# The generated Prisma client lives in the dot-folder node_modules/.prisma,
+# which electron-builder's node-module dependency collector skips because it
+# is not a package in the dependency graph ('files' globs cannot force it in).
+# Copy it as a real directory under resources/node_modules so that
+# @prisma/client's require('.prisma/client/default') resolves via the normal
+# node_modules ancestor walk, and the native query engine (.dll.node) loads
+# from disk instead of from inside app.asar.
+# @prisma/client must sit alongside it: the generated .prisma/client/index.js
+# requires '@prisma/client/runtime/library.js', and the copy inside app.asar
+# is not reachable from the real resources/node_modules directory.
 extraResources:
   - from: node_modules/.prisma
-    to: prisma-client/.prisma
+    to: node_modules/.prisma
+    filter:
+      - '**/*'
+  - from: node_modules/@prisma/client
+    to: node_modules/@prisma/client
+    filter:
+      - '**/*'
 win:
   executableName: simcbx-papl
 nsis:

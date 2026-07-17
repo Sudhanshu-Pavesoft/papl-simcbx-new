@@ -1,5 +1,5 @@
 import { Button, Checkbox, Flex, Select, Title, type SelectProps } from '@mantine/core'
-import { useEffect, useMemo, useState, type FC } from 'react'
+import { useMemo, useState, type FC } from 'react'
 import { DatePickerInput } from '@mantine/dates'
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table'
 import type { PartData } from '@prisma/client'
@@ -209,27 +209,19 @@ const Reports = () => {
     ).then(setPartDetails)
   }
 
-  useEffect(() => {
-    if (monthWiseReport && startDate) {
-      const start = new Date(startDate)
-      const today = new Date()
+  const getMonthEndDate = (start: Date): Date => {
+    const today = new Date()
 
-      const startYear = start.getFullYear()
-      const startMonth = start.getMonth()
+    const startYear = start.getFullYear()
+    const startMonth = start.getMonth()
 
-      let end: Date
-
-      // If selected month is current month, set endDate as today
-      if (startYear === today.getFullYear() && startMonth === today.getMonth()) {
-        end = today
-      } else {
-        // Else, set endDate as last day of that month
-        end = new Date(startYear, startMonth + 1, 0) // 0th of next month = last day of this month
-      }
-
-      setEndDate(end)
+    // If selected month is current month, endDate is today
+    if (startYear === today.getFullYear() && startMonth === today.getMonth()) {
+      return today
     }
-  }, [monthWiseReport, startDate])
+    // Else, endDate is last day of that month (0th of next month)
+    return new Date(startYear, startMonth + 1, 0)
+  }
 
   return (
     <Flex direction="column" p={24} w={'100%'} h={'96vh'}>
@@ -242,7 +234,13 @@ const Reports = () => {
             placeholder="Pick date"
             maxDate={new Date()}
             value={startDate}
-            onChange={(date) => setStartDate(date ? new Date(date) : null)}
+            onChange={(date) => {
+              const start = date ? new Date(date) : null
+              setStartDate(start)
+              if (monthWiseReport && start) {
+                setEndDate(getMonthEndDate(start))
+              }
+            }}
           />
           <DatePickerInput
             w={320}
@@ -259,7 +257,13 @@ const Reports = () => {
             size="md"
             label="MONTH WISE REPORT"
             checked={monthWiseReport}
-            onChange={(e) => setMonthWiseReport(e.currentTarget.checked)}
+            onChange={(e) => {
+              const checked = e.currentTarget.checked
+              setMonthWiseReport(checked)
+              if (checked && startDate) {
+                setEndDate(getMonthEndDate(startDate))
+              }
+            }}
           />
           <ShiftSelect
             value={shiftFilter}
